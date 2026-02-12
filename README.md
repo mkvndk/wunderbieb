@@ -164,5 +164,4 @@ Gedrag:
 
 # 4. “Laatste Setter Wint” Principe
 
-Per documentversie geldt:
-
+Als 2 rollen een score mogen zetten dan telt de laatst gezette score
