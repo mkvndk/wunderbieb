@@ -1,6 +1,3 @@
-Hieronder staat een kant-en-klaar Markdown document dat je direct als
-KMS_Roles_Lifecycle_Scoring.md in je GitHub repo kunt opslaan.
-
 ⸻
 
 KMS – Rollen, Document Lifecycle & Scoring Model (MVP)
