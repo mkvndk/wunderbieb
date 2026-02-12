@@ -1,271 +1,168 @@
-⸻
+# KMS – Rollen, Document Lifecycle & Scoring Model (MVP)
 
-KMS – Rollen, Document Lifecycle & Scoring Model (MVP)
+Dit document beschrijft de functionele en technische uitgangspunten van het KMS (Kwaliteitsmanagementsysteem) voor:
 
-1. Doel van dit document
+- Rollen en permissies
+- Document lifecycle
+- Stoplicht (scoring) model
+- Gewichten en berekeningslogica
+- Database-implicaties (MVP)
 
-Dit document beschrijft het functionele en technische model voor:
-	•	Rollen en permissies binnen het KMS
-	•	Document lifecycle statussen
-	•	Het scoringmodel (stoplichten)
-	•	Gewichten per scorebron
-	•	De “laatste setter wint” logica
+Deze opzet is bewust eenvoudig gehouden en gebaseerd op het principe:
 
-Dit betreft de MVP-opzet en is bewust eenvoudig gehouden.
+> **“Laatste setter wint”**
 
-⸻
+---
 
-2. Rollen en Permissies
+# 1. Rollen & Permissies
 
-2.1 school_admin (schooldirecteur)
+## 1.1 school_admin (Schooldirecteur)
 
-Permissies:
-	•	Documenten maken
-	•	Documenten wijzigen
-	•	Documenten verwijderen
-	•	Documentstatus wijzigen
-	•	SELF score zetten
+**Mag:**
 
-⸻
+- Documenten maken
+- Documenten wijzigen
+- Documenten verwijderen
+- Documentstatus wijzigen
+- SELF-score zetten
 
-2.2 quality_manager_school (interne kwaliteitsmanager)
+---
 
-Permissies:
-	•	Documenten maken
-	•	Documenten wijzigen
-	•	Documenten verwijderen
-	•	Documentstatus wijzigen
-	•	SELF score zetten
+## 1.2 quality_manager_school (Interne kwaliteitsmanager)
 
-⸻
+**Mag:**
 
-2.3 quality_manager_cluster (cluster kwaliteitsmanager)
+- Documenten maken
+- Documenten wijzigen
+- Documenten verwijderen
+- Documentstatus wijzigen
+- SELF-score zetten
 
-Permissies:
-	•	Documenten maken
-	•	Documenten wijzigen
-	•	Documenten verwijderen
-	•	Documentstatus wijzigen
-	•	CLUSTER score zetten
+---
 
-⸻
+## 1.3 quality_manager_cluster (Cluster kwaliteitsmanager)
 
-2.4 board_member (bestuurder)
+**Mag:**
 
-Permissies:
-	•	Documenten maken
-	•	Documenten wijzigen
-	•	Documenten verwijderen
-	•	Documentstatus wijzigen
-	•	CLUSTER score zetten
+- Documenten maken
+- Documenten wijzigen
+- Documenten verwijderen
+- Documentstatus wijzigen
+- CLUSTER-score zetten
 
-⸻
+---
 
-2.5 external_advisor (externe adviseur)
+## 1.4 board_member (Bestuurder)
 
-Permissies:
-	•	Alle documenten inzien (read-only)
-	•	EXTERNAL score zetten
+**Mag:**
 
-Niet toegestaan:
-	•	Documenten maken
-	•	Documenten wijzigen
-	•	Documenten verwijderen
-	•	Documentstatus wijzigen
+- Documenten maken
+- Documenten wijzigen
+- Documenten verwijderen
+- Documentstatus wijzigen
+- CLUSTER-score zetten
 
-⸻
+---
 
-3. Document Lifecycle
+## 1.5 external_advisor (Externe adviseur)
 
-Documenten doorlopen de volgende statussen:
+**Mag:**
 
-Technische waarde	Label (UI)
-CONCEPT	In opmaak
-REVIEW	In behandeling
-ACTIVE	Vastgesteld
-EXPIRED	Verlopen
+- Alle documenten inzien (read-only)
+- EXTERNAL-score zetten
 
-Lifecycle intentie
-	•	CONCEPT → document wordt opgesteld of aangepast
-	•	REVIEW → document is in beoordeling
-	•	ACTIVE → document is vastgesteld en geldig
-	•	EXPIRED → document is verlopen of vervangen
+**Mag niet:**
 
-⸻
+- Documenten maken
+- Documenten wijzigen
+- Documenten verwijderen
+- Documentstatus wijzigen
 
-4. Scoring Model (Stoplichten)
+---
 
-4.1 Overzicht
+# 2. Document Lifecycle
 
-Per documentversie bestaan maximaal 3 stoplichten:
+Documenten kennen de volgende statussen:
 
-Stoplicht	score_source	Gewicht
-Intern	SELF	1
-Cluster	CLUSTER	2
-Extern	EXTERNAL	3
+| Technische waarde | UI-label |
+|------------------|----------|
+| `CONCEPT`        | In opmaak |
+| `REVIEW`         | In behandeling |
+| `ACTIVE`         | Vastgesteld |
+| `EXPIRED`        | Verlopen |
 
-Elke score bevat:
-	•	document_id
-	•	source
-	•	value_enum
-	•	weight
-	•	value_numeric
+### Betekenis
 
-⸻
+- **CONCEPT** → Document wordt opgesteld of aangepast  
+- **REVIEW** → Document is in beoordeling  
+- **ACTIVE** → Document is vastgesteld en geldig  
+- **EXPIRED** → Document is verlopen of vervangen  
 
-4.2 Scorewaarden (stoplicht)
+---
 
-Enum: score_value_enum
-	•	ZWAK
-	•	VOLDOENDE
-	•	GOED
-	•	NULL = geen beoordeling (stoplicht uit)
+# 3. Scoring Model (Stoplichten)
 
-⸻
+Per documentversie bestaan maximaal **3 stoplichten**.
 
-4.3 Wie mag welke score zetten?
+## 3.1 Stoplichten en gewichten
 
-SELF (weight = 1)
+| Stoplicht | score_source | Gewicht |
+|------------|--------------|----------|
+| Intern     | `SELF`       | 1 |
+| Cluster    | `CLUSTER`    | 2 |
+| Extern     | `EXTERNAL`   | 3 |
 
-Mag gezet worden door:
-	•	school_admin
-	•	quality_manager_school
+---
 
-Gedrag:
+## 3.2 Scorewaarden (Enum)
 
-Laatste setter wint
+`score_value_enum`
 
-⸻
+- `ZWAK`
+- `VOLDOENDE`
+- `GOED`
+- `NULL` → geen beoordeling (stoplicht uit)
 
-CLUSTER (weight = 2)
+---
+
+## 3.3 Wie mag welke score zetten?
+
+### SELF (weight = 1)
 
 Mag gezet worden door:
-	•	board_member
-	•	quality_manager_cluster
+
+- school_admin  
+- quality_manager_school  
 
 Gedrag:
+> Laatste setter wint
 
-Laatste setter wint
+---
 
-⸻
-
-EXTERNAL (weight = 3)
+### CLUSTER (weight = 2)
 
 Mag gezet worden door:
-	•	external_advisor
+
+- board_member  
+- quality_manager_cluster  
 
 Gedrag:
+> Laatste setter wint
 
-Enige setter
+---
 
-⸻
+### EXTERNAL (weight = 3)
 
-5. “Laatste setter wint” principe
+Mag gezet worden door:
 
-Per documentversie is er:
+- external_advisor  
 
-maximaal 1 score per (document_id, source)
+Gedrag:
+> Enige setter
 
-Database constraint:
+---
 
-UNIQUE(document_id, source)
+# 4. “Laatste Setter Wint” Principe
 
-Als een bevoegde gebruiker opnieuw scoort:
-	•	De bestaande score wordt geüpdatet
-	•	Er wordt geen nieuwe rij aangemaakt
-	•	De laatst opgeslagen waarde is leidend
+Per documentversie geldt:
 
-Er wordt in de MVP geen auditgeschiedenis bijgehouden.
-
-⸻
-
-6. Gewogen Score Logica
-
-Gewicht wordt automatisch bepaald door score_source:
-
-source	weight
-SELF	1
-CLUSTER	2
-EXTERNAL	3
-
-Voor berekeningen kan een gewogen score worden bepaald via:
-
-weighted_score = value_numeric × weight
-
-Waarbij:
-
-value_enum	value_numeric
-ZWAK	1
-VOLDOENDE	2
-GOED	3
-
-
-⸻
-
-7. Database Structuur (MVP)
-
-Tabel: scores
-
-Belangrijke velden:
-	•	id
-	•	document_id
-	•	source
-	•	value_enum
-	•	value_numeric
-	•	weight
-	•	created_at
-	•	created_by
-
-Unieke constraint:
-
-UNIQUE(document_id, source)
-
-
-⸻
-
-8. Architectuurkeuzes (bewust)
-
-Waarom 3 stoplichten?
-	•	Duidelijke governance-lagen
-	•	Intern / cluster / extern onderscheid
-	•	Eenvoudig dashboarden
-
-Waarom “laatste setter wint”?
-	•	Minimale complexiteit
-	•	Geen auditmodel nodig in MVP
-	•	Sluit aan bij praktische governance
-
-Waarom gewichten?
-	•	Externe beoordeling weegt zwaarder
-	•	Clusterbeoordeling middelzwaar
-	•	Interne beoordeling basis
-
-⸻
-
-9. Toekomstige uitbreidingen (optioneel)
-
-Mogelijke toekomstige uitbreidingen:
-	•	Audittrail per score
-	•	Meerdere actieve beoordelaars per source
-	•	Fijnmazige rol-permissies
-	•	Score-reset bij nieuwe documentversie
-	•	Automatische statusovergang bij bepaalde scores
-	•	Dashboard met aggregaties per documenttype
-
-⸻
-
-10. Samenvatting
-
-De MVP van het KMS bevat:
-	•	Duidelijke rolstructuur
-	•	Heldere document lifecycle
-	•	3-stoplichtenmodel
-	•	Gewogen scoring
-	•	Eenvoudige en stabiele database-opzet
-	•	“Laatste setter wint” mechanisme
-
-Dit model is eenvoudig, robuust en uitbreidbaar.
-
-⸻
-
-Als je wilt, kan ik ook nog een tweede Markdown-bestand maken met alleen de technische implementatie (SQL + RLS + triggers) als aparte documentatie voor developers.
