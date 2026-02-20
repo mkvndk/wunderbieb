@@ -1,167 +1,199 @@
-# KMS – Rollen, Document Lifecycle & Scoring Model (MVP)
+# 🧭 KMS – Rollen, Document Lifecycle & Fasegebaseerd Kwaliteitsmodel
 
-Dit document beschrijft de functionele en technische uitgangspunten van het KMS (Kwaliteitsmanagementsysteem) voor:
+## 1. Organisatiestructuur
 
-- Rollen en permissies
-- Document lifecycle
-- Stoplicht (scoring) model
-- Gewichten en berekeningslogica
-- Database-implicaties (MVP)
+Het KMS kent twee organisatielagen:
 
-Deze opzet is bewust eenvoudig gehouden en gebaseerd op het principe:
+- **Bestuur**
+- **Scholen**
 
-> **“Laatste setter wint”**
+Gebruikers behoren tot één van deze lagen en hebben rechten afhankelijk van hun rol.
 
 ---
 
-# 1. Rollen & Permissies
+# 2. Rollen & Rechten
 
-## 1.1 school_admin (Schooldirecteur)
+## 2.1 Schoolniveau
 
-**Mag:**
-
-- Documenten maken
-- Documenten wijzigen
+### 🏫 Directie
+- Documenten aanmaken
+- Documenten bewerken
 - Documenten verwijderen
 - Documentstatus wijzigen
-- SELF-score zetten
+- Documenten goedkeuren op schoolniveau
+- Documenten inzien
+- Toegang tot dashboard
+
+### 🧩 Kwaliteitscoördinator (school)
+- Documenten aanmaken
+- Documenten bewerken
+- Documenten goedkeuren op schoolniveau
+- Documenten inzien
+- Toegang tot dashboard
+
+### 👩‍🏫 Teamleden
+- Documenten inzien
+- Toegang tot dashboard
+- Geen beoordelingsrechten
+
+### 👥 MR-leden
+- Documenten inzien
+- Toegang tot dashboard
+- Optioneel beoordelingsrecht (nader te bepalen)
 
 ---
 
-## 1.2 quality_manager_school (Interne kwaliteitsmanager)
+## 2.2 Bestuursniveau
 
-**Mag:**
+### 🏢 Kwaliteitscoördinator (bestuur)
+- Documenten inzien
+- Documenten beoordelen op bestuursniveau
+- Toegang tot dashboard
 
-- Documenten maken
-- Documenten wijzigen
-- Documenten verwijderen
-- Documentstatus wijzigen
-- SELF-score zetten
-
----
-
-## 1.3 quality_manager_cluster (Cluster kwaliteitsmanager)
-
-**Mag:**
-
-- Documenten maken
-- Documenten wijzigen
-- Documenten verwijderen
-- Documentstatus wijzigen
-- CLUSTER-score zetten
+### 👔 Bestuurders
+- Documenten inzien
+- Toegang tot dashboard
+- Geen operationele beoordelingsrol
 
 ---
 
-## 1.4 board_member (Bestuurder)
+# 3. Document Lifecycle
 
-**Mag:**
+Documenten kennen een lifecycle-status:
 
-- Documenten maken
-- Documenten wijzigen
-- Documenten verwijderen
-- Documentstatus wijzigen
-- CLUSTER-score zetten
+- `CONCEPT` – In opmaak  
+- `REVIEW` – In behandeling  
+- `ACTIVE` – Vastgesteld  
+- `EXPIRED` – Verlopen  
 
----
-
-## 1.5 external_advisor (Externe adviseur)
-
-**Mag:**
-
-- Alle documenten inzien (read-only)
-- EXTERNAL-score zetten
-
-**Mag niet:**
-
-- Documenten maken
-- Documenten wijzigen
-- Documenten verwijderen
-- Documentstatus wijzigen
+Deze status bepaalt de formele fase van het document binnen de organisatie.
 
 ---
 
-# 2. Document Lifecycle
+# 4. Fasegebaseerd Kwaliteitsmodel
 
-Documenten kennen de volgende statussen:
+Het kwaliteitsmodel bestaat uit **5 vaste fases** per document.  
+Elke fase wordt visueel weergegeven als een blokje in een vaste volgorde.
 
-| Technische waarde | UI-label |
-|------------------|----------|
-| `CONCEPT`        | In opmaak |
-| `REVIEW`         | In behandeling |
-| `ACTIVE`         | Vastgesteld |
-| `EXPIRED`        | Verlopen |
+## Fases
 
-### Betekenis
+1. **Status**  
+   (Is het document aangemaakt en wat is de huidige documentstatus?)
 
-- **CONCEPT** → Document wordt opgesteld of aangepast  
-- **REVIEW** → Document is in beoordeling  
-- **ACTIVE** → Document is vastgesteld en geldig  
-- **EXPIRED** → Document is verlopen of vervangen  
+2. **Schoolcontrole**  
+   Beoordeling door kwaliteitscoördinator of directie van de school.
 
----
+3. **Bestuurscontrole**  
+   Beoordeling door kwaliteitscoördinator van het bestuur.
 
-# 3. Scoring Model (Stoplichten)
+4. **Interne controle**  
+   Interne audit of aanvullende interne kwaliteitscontrole.
 
-Per documentversie bestaan maximaal **3 stoplichten**.
-
-## 3.1 Stoplichten en gewichten
-
-| Stoplicht | score_source | Gewicht |
-|------------|--------------|----------|
-| Intern     | `SELF`       | 1 |
-| Cluster    | `CLUSTER`    | 2 |
-| Extern     | `EXTERNAL`   | 3 |
+5. **Externe controle**  
+   Beoordeling door externe adviseur of auditor.
 
 ---
 
-## 3.2 Scorewaarden (Enum)
+# 5. Beoordelingsopties per Controlefase
 
-`score_value_enum`
+Voor elke controlefase (fase 2 t/m 5) zijn vier mogelijke statussen:
 
-- `ZWAK`
-- `VOLDOENDE`
-- `GOED`
-- `NULL` → geen beoordeling (stoplicht uit)
+- ✅ **Goedkeuren**
+- 🟡 **Goedkeuren met verbeterpunten**
+- ❌ **Afkeuren met aantekeningen**
+- ⚪ **Nog niet gecontroleerd**
 
----
-
-## 3.3 Wie mag welke score zetten?
-
-### SELF (weight = 1)
-
-Mag gezet worden door:
-
-- school_admin  
-- quality_manager_school  
-
-Gedrag:
-> Laatste setter wint
+Elke beoordeling:
+- Kan een toelichting bevatten
+- Overschrijft een eerdere beoordeling (laatste setter wint)
+- Wordt opgeslagen per fase
 
 ---
 
-### CLUSTER (weight = 2)
+# 6. Puntensysteem per Fase
 
-Mag gezet worden door:
+## Fase 1 – Status (Document aangemaakt)
 
-- board_member  
-- quality_manager_cluster  
-
-Gedrag:
-> Laatste setter wint
-
----
-
-### EXTERNAL (weight = 3)
-
-Mag gezet worden door:
-
-- external_advisor  
-
-Gedrag:
-> Enige setter
+| Status | Punten |
+|--------|--------|
+| Document aangemaakt | +3 |
+| Niet aangemaakt | 0 |
 
 ---
 
-# 4. “Laatste Setter Wint” Principe
+## Fase 2 – Schoolcontrole
 
-Als 2 rollen een score mogen zetten dan telt de laatst gezette score
+| Beoordeling | Punten |
+|-------------|--------|
+| Voldoende | +3 |
+| Voldoende met verbeterpunten | +2 |
+| Onvoldoende | +1 |
+| Nog niet gecontroleerd | 0 |
+
+---
+
+## Fase 3 – Bestuurscontrole
+
+| Beoordeling | Punten |
+|-------------|--------|
+| Voldoende | +2 |
+| Voldoende met verbeterpunten | +1 |
+| Onvoldoende | -2 |
+| Nog niet gecontroleerd | 0 |
+
+---
+
+## Fase 4 – Interne controle
+
+| Beoordeling | Punten |
+|-------------|--------|
+| Voldoende | +2 |
+| Voldoende met verbeterpunten | +1 |
+| Onvoldoende | -2 |
+| Nog niet gecontroleerd | 0 |
+
+---
+
+## Fase 5 – Externe controle
+
+| Beoordeling | Punten |
+|-------------|--------|
+| Voldoende | +3 |
+| Voldoende met verbeterpunten | +2 |
+| Onvoldoende | -2 |
+| Nog niet gecontroleerd | 0 |
+
+---
+
+# 7. Visuele Representatie
+
+Elk document wordt weergegeven als een vaste reeks van 5 blokjes:
+
+```
+[ Status ] [ School ] [ Bestuur ] [ Intern ] [ Extern ]
+```
+
+De kleur van elk blokje wordt bepaald door de beoordelingsstatus.
+
+Op dashboardniveau kunnen meerdere documenten worden samengevoegd tot een verticale of horizontale kwaliteitsbalk.
+
+---
+
+# 8. Aggregatie & Dashboard
+
+Voor dashboards kunnen:
+
+- Fase-scores per document worden opgeteld
+- Scores per school worden geaggregeerd
+- Onderliggende documenten worden weergegeven als segmenten in een kwaliteitskaart
+- Trends per jaar of cluster worden gevisualiseerd
+
+---
+
+# 9. Ontwerpprincipes
+
+- Fases zijn altijd vast in volgorde
+- Beoordelingen zijn overschrijfbaar (laatste setter wint)
+- Elke fase is afzonderlijk inzichtelijk
+- Het model ondersteunt zowel detailniveau als bestuurlijk overzicht
+- Uitbreiding naar extra fases blijft mogelijk
