@@ -1,199 +1,105 @@
-# 🧭 KMS – Rollen, Document Lifecycle & Fasegebaseerd Kwaliteitsmodel
+# KMS – Rollen & Rechtenmodel
 
-## 1. Organisatiestructuur
+## 1. Organisatielagen
 
-Het KMS kent twee organisatielagen:
+Het KMS werkt met drie organisatielagen:
 
-- **Bestuur**
-- **Scholen**
+1. **Bestuur**
+2. **School**
+3. **Extern**
 
-Gebruikers behoren tot één van deze lagen en hebben rechten afhankelijk van hun rol.
+Rechten worden bepaald op basis van de rol van een gebruiker binnen één van deze lagen.
 
 ---
 
-# 2. Rollen & Rechten
+# 2. Overerving van Rechten
 
-## 2.1 Schoolniveau
+Rechten op **bestuursniveau** gelden automatisch voor **alle onderliggende scholen**.
 
-### 🏫 Directie
-- Documenten aanmaken
+Dit betekent:
+
+- Gebruikers met bestuursrechten kunnen **alle scholen zien**
+- Gebruikers met alleen schoolrechten zien **uitsluitend hun eigen school**
+- Gebruikers met alleen externrechten zien **uitsluitend hun eigen school**
+
+---
+
+# 3. Rollen
+
+## 3.1 Bestuursniveau
+
+| Rol | Rechten |
+|----|----|
+| Bestuurder | Alleen lezen |
+| Bestuurs Kwaliteitscoördinator | Lezen + schrijven |
+
+---
+
+## 3.2 Schoolniveau
+
+| Rol | Rechten |
+|----|----|
+| Directeur | Lezen + schrijven |
+| Kwaliteitscoördinator | Lezen + schrijven |
+| Teamleden | Alleen lezen |
+| MR-leden | Alleen lezen |
+
+---
+
+## 3.3 Extern niveau
+
+| Rol | Rechten |
+|----|----|
+| Onderwijsadviseur | Lezen + schrijven |
+
+---
+
+# 4. Rechttypen
+
+Het systeem kent twee typen rechten.
+
+## Alleen lezen
+
+Gebruikers kunnen:
+
+- Documenten bekijken
+- Dashboards bekijken
+- Informatie raadplegen
+
+Deze rollen zijn:
+
+- Bestuurder
+- Teamleden
+- MR-leden
+
+---
+
+## Lezen + schrijven
+
+Gebruikers kunnen:
+
+- Documenten maken
 - Documenten bewerken
-- Documenten verwijderen
+- Documenten beoordelen
+- Gebruikers aanmaken of beheren
 - Documentstatus wijzigen
-- Documenten goedkeuren op schoolniveau
-- Documenten inzien
-- Toegang tot dashboard
 
-### 🧩 Kwaliteitscoördinator (school)
-- Documenten aanmaken
-- Documenten bewerken
-- Documenten goedkeuren op schoolniveau
-- Documenten inzien
-- Toegang tot dashboard
+Deze rollen zijn:
 
-### 👩‍🏫 Teamleden
-- Documenten inzien
-- Toegang tot dashboard
-- Geen beoordelingsrechten
-
-### 👥 MR-leden
-- Documenten inzien
-- Toegang tot dashboard
-- Optioneel beoordelingsrecht (nader te bepalen)
+- Bestuurs Kwaliteitscoördinator
+- Directeur
+- Kwaliteitscoördinator
+- Onderwijsadviseur
 
 ---
 
-## 2.2 Bestuursniveau
+# 5. Uitbreidbaarheid
 
-### 🏢 Kwaliteitscoördinator (bestuur)
-- Documenten inzien
-- Documenten beoordelen op bestuursniveau
-- Toegang tot dashboard
+Nieuwe rollen kunnen eenvoudig worden toegevoegd.
 
-### 👔 Bestuurders
-- Documenten inzien
-- Toegang tot dashboard
-- Geen operationele beoordelingsrol
+Elke nieuwe rol valt altijd onder één van deze twee rechtenniveaus:
 
----
+- **Alleen lezen**
+- **Lezen + schrijven**
 
-# 3. Document Lifecycle
-
-Documenten kennen een lifecycle-status:
-
-- `CONCEPT` – In opmaak  
-- `REVIEW` – In behandeling  
-- `ACTIVE` – Vastgesteld  
-- `EXPIRED` – Verlopen  
-
-Deze status bepaalt de formele fase van het document binnen de organisatie.
-
----
-
-# 4. Fasegebaseerd Kwaliteitsmodel
-
-Het kwaliteitsmodel bestaat uit **5 vaste fases** per document.  
-Elke fase wordt visueel weergegeven als een blokje in een vaste volgorde.
-
-## Fases
-
-1. **Status**  
-   (Is het document aangemaakt en wat is de huidige documentstatus?)
-
-2. **Schoolcontrole**  
-   Beoordeling door kwaliteitscoördinator of directie van de school.
-
-3. **Bestuurscontrole**  
-   Beoordeling door kwaliteitscoördinator van het bestuur.
-
-4. **Interne controle**  
-   Interne audit of aanvullende interne kwaliteitscontrole.
-
-5. **Externe controle**  
-   Beoordeling door externe adviseur of auditor.
-
----
-
-# 5. Beoordelingsopties per Controlefase
-
-Voor elke controlefase (fase 2 t/m 5) zijn vier mogelijke statussen:
-
-- ✅ **Goedkeuren**
-- 🟡 **Goedkeuren met verbeterpunten**
-- ❌ **Afkeuren met aantekeningen**
-- ⚪ **Nog niet gecontroleerd**
-
-Elke beoordeling:
-- Kan een toelichting bevatten
-- Overschrijft een eerdere beoordeling (laatste setter wint)
-- Wordt opgeslagen per fase
-
----
-
-# 6. Puntensysteem per Fase
-
-## Fase 1 – Status (Document aangemaakt)
-
-| Status | Punten |
-|--------|--------|
-| Document aangemaakt | +3 |
-| Niet aangemaakt | 0 |
-
----
-
-## Fase 2 – Schoolcontrole
-
-| Beoordeling | Punten |
-|-------------|--------|
-| Voldoende | +3 |
-| Voldoende met verbeterpunten | +2 |
-| Onvoldoende | +1 |
-| Nog niet gecontroleerd | 0 |
-
----
-
-## Fase 3 – Bestuurscontrole
-
-| Beoordeling | Punten |
-|-------------|--------|
-| Voldoende | +2 |
-| Voldoende met verbeterpunten | +1 |
-| Onvoldoende | -2 |
-| Nog niet gecontroleerd | 0 |
-
----
-
-## Fase 4 – Interne controle
-
-| Beoordeling | Punten |
-|-------------|--------|
-| Voldoende | +2 |
-| Voldoende met verbeterpunten | +1 |
-| Onvoldoende | -2 |
-| Nog niet gecontroleerd | 0 |
-
----
-
-## Fase 5 – Externe controle
-
-| Beoordeling | Punten |
-|-------------|--------|
-| Voldoende | +3 |
-| Voldoende met verbeterpunten | +2 |
-| Onvoldoende | -2 |
-| Nog niet gecontroleerd | 0 |
-
----
-
-# 7. Visuele Representatie
-
-Elk document wordt weergegeven als een vaste reeks van 5 blokjes:
-
-```
-[ Status ] [ School ] [ Bestuur ] [ Intern ] [ Extern ]
-```
-
-De kleur van elk blokje wordt bepaald door de beoordelingsstatus.
-
-Op dashboardniveau kunnen meerdere documenten worden samengevoegd tot een verticale of horizontale kwaliteitsbalk.
-
----
-
-# 8. Aggregatie & Dashboard
-
-Voor dashboards kunnen:
-
-- Fase-scores per document worden opgeteld
-- Scores per school worden geaggregeerd
-- Onderliggende documenten worden weergegeven als segmenten in een kwaliteitskaart
-- Trends per jaar of cluster worden gevisualiseerd
-
----
-
-# 9. Ontwerpprincipes
-
-- Fases zijn altijd vast in volgorde
-- Beoordelingen zijn overschrijfbaar (laatste setter wint)
-- Elke fase is afzonderlijk inzichtelijk
-- Het model ondersteunt zowel detailniveau als bestuurlijk overzicht
-- Uitbreiding naar extra fases blijft mogelijk
+Hierdoor blijft het rechtenmodel eenvoudig en beheersbaar.
