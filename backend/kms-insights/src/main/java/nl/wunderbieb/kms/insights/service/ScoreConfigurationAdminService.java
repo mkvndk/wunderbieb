@@ -1,27 +1,30 @@
 package nl.wunderbieb.kms.insights.service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import nl.wunderbieb.kms.audit.service.AuditService;
 import nl.wunderbieb.kms.insights.domain.ScoreConfiguration;
+import nl.wunderbieb.kms.insights.repository.ScoreConfigurationEntity;
+import nl.wunderbieb.kms.insights.repository.ScoreConfigurationRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public final class ScoreConfigurationAdminService {
+@Service
+@Transactional
+public class ScoreConfigurationAdminService {
 
   private final AuditService auditService;
-  private final AtomicLong sequence = new AtomicLong(0);
-  private final Map<Long, ScoreConfiguration> configurationsById = new ConcurrentHashMap<>();
+  private final ScoreConfigurationRepository scoreConfigurationRepository;
 
-  public ScoreConfigurationAdminService(AuditService auditService) {
+  public ScoreConfigurationAdminService(AuditService auditService, ScoreConfigurationRepository scoreConfigurationRepository) {
     this.auditService = auditService;
-    seedDefaults();
+    this.scoreConfigurationRepository = scoreConfigurationRepository;
   }
 
+  @Transactional(readOnly = true)
   public List<ScoreConfiguration> getScoreConfigurations() {
-    return configurationsById.values().stream()
-        .sorted((left, right) -> Integer.compare(left.sortOrder(), right.sortOrder()))
+    return scoreConfigurationRepository.findAllByOrderBySortOrderAscIdAsc().stream()
+        .map(this::toDomain)
         .toList();
   }
 
@@ -33,18 +36,19 @@ public final class ScoreConfigurationAdminService {
       String descriptionNl,
       int sortOrder
   ) {
-    ScoreConfiguration configuration = new ScoreConfiguration(
-        sequence.incrementAndGet(),
+    if (scoreConfigurationRepository.existsByCode(code)) {
+      throw new IllegalArgumentException("Scoreconfiguratiecode bestaat al.");
+    }
+    ScoreConfigurationEntity configuration = scoreConfigurationRepository.save(new ScoreConfigurationEntity(
         code,
         numericValue,
         displayLabelNl,
         descriptionNl,
         sortOrder,
         true
-    );
-    configurationsById.put(configuration.id(), configuration);
-    auditService.record("score_configuration_created", actorRoleCode, "score_configuration", configuration.code(), "Scoreconfiguratie aangemaakt");
-    return configuration;
+    ));
+    auditService.record("score_configuration_created", actorRoleCode, "score_configuration", configuration.getCode(), "Scoreconfiguratie aangemaakt");
+    return toDomain(configuration);
   }
 
   public ScoreConfiguration updateScoreConfiguration(
@@ -56,20 +60,37 @@ public final class ScoreConfigurationAdminService {
       Integer sortOrder,
       Boolean active
   ) {
-    ScoreConfiguration existing = configurationsById.get(id);
-    if (existing == null) {
-      throw new NoSuchElementException("Scoreconfiguratie niet gevonden.");
+    ScoreConfigurationEntity existing = scoreConfigurationRepository.findById(id)
+        .orElseThrow(() -> new NoSuchElementException("Scoreconfiguratie niet gevonden."));
+    if (numericValue != null) {
+      existing.setNumericValue(numericValue);
     }
-    ScoreConfiguration updated = existing.withPatch(numericValue, displayLabelNl, descriptionNl, sortOrder, active);
-    configurationsById.put(id, updated);
-    auditService.record("score_configuration_updated", actorRoleCode, "score_configuration", updated.code(), "Scoreconfiguratie bijgewerkt");
-    return updated;
+    if (displayLabelNl != null) {
+      existing.setDisplayLabelNl(displayLabelNl);
+    }
+    if (descriptionNl != null) {
+      existing.setDescriptionNl(descriptionNl);
+    }
+    if (sortOrder != null) {
+      existing.setSortOrder(sortOrder);
+    }
+    if (active != null) {
+      existing.setActive(active);
+    }
+    ScoreConfigurationEntity updated = scoreConfigurationRepository.save(existing);
+    auditService.record("score_configuration_updated", actorRoleCode, "score_configuration", updated.getCode(), "Scoreconfiguratie bijgewerkt");
+    return toDomain(updated);
   }
 
-  private void seedDefaults() {
-    configurationsById.put(1L, new ScoreConfiguration(1L, "HIGH", 9, "Sterk op orde", "Voorlopige hoge score", 1, true));
-    configurationsById.put(2L, new ScoreConfiguration(2L, "MEDIUM", 6, "Basis op orde", "Voorlopige middenscore", 2, true));
-    configurationsById.put(3L, new ScoreConfiguration(3L, "LOW", 3, "Onvoldoende op orde", "Voorlopige lage score", 3, true));
-    sequence.set(3);
+  private ScoreConfiguration toDomain(ScoreConfigurationEntity entity) {
+    return new ScoreConfiguration(
+        entity.getId(),
+        entity.getCode(),
+        entity.getNumericValue(),
+        entity.getDisplayLabelNl(),
+        entity.getDescriptionNl(),
+        entity.getSortOrder(),
+        entity.isActive()
+    );
   }
 }

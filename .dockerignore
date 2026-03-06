@@ -1,0 +1,7 @@
+.git
+.idea
+.m2
+**/target
+**/node_modules
+ui/dist
+ui/tsconfig.tsbuildinfo

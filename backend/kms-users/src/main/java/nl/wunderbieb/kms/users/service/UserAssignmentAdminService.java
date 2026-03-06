@@ -2,31 +2,38 @@ package nl.wunderbieb.kms.users.service;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import nl.wunderbieb.kms.audit.service.AuditService;
 import nl.wunderbieb.kms.commons.access.ScopeType;
 import nl.wunderbieb.kms.users.domain.Role;
 import nl.wunderbieb.kms.users.domain.UserAssignment;
+import nl.wunderbieb.kms.users.repository.UserAssignmentEntity;
+import nl.wunderbieb.kms.users.repository.UserAssignmentRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public final class UserAssignmentAdminService {
+@Service
+@Transactional
+public class UserAssignmentAdminService {
 
   private final RoleAdminService roleAdminService;
   private final AuditService auditService;
-  private final AtomicLong assignmentSequence = new AtomicLong(0);
-  private final Map<Long, UserAssignment> assignmentsById = new ConcurrentHashMap<>();
+  private final UserAssignmentRepository userAssignmentRepository;
 
-  public UserAssignmentAdminService(RoleAdminService roleAdminService, AuditService auditService) {
+  public UserAssignmentAdminService(
+      RoleAdminService roleAdminService,
+      AuditService auditService,
+      UserAssignmentRepository userAssignmentRepository
+  ) {
     this.roleAdminService = roleAdminService;
     this.auditService = auditService;
+    this.userAssignmentRepository = userAssignmentRepository;
   }
 
+  @Transactional(readOnly = true)
   public List<UserAssignment> getAssignments(long userId) {
-    return assignmentsById.values().stream()
-        .filter(assignment -> assignment.userId() == userId)
-        .sorted((left, right) -> Long.compare(left.id(), right.id()))
+    return userAssignmentRepository.findAllByUserIdOrderByIdAsc(userId).stream()
+        .map(this::toDomain)
         .toList();
   }
 
@@ -42,8 +49,10 @@ public final class UserAssignmentAdminService {
   ) {
     validateScope(scopeType, boardId, schoolId);
     Role role = roleAdminService.requireRoleByCode(roleCode);
-    UserAssignment assignment = new UserAssignment(
-        assignmentSequence.incrementAndGet(),
+    if (role.scopeType() != scopeType) {
+      throw new IllegalArgumentException("Rolscope komt niet overeen met assignment scope.");
+    }
+    UserAssignmentEntity assignment = userAssignmentRepository.save(new UserAssignmentEntity(
         userId,
         role.code(),
         scopeType,
@@ -53,10 +62,9 @@ public final class UserAssignmentAdminService {
         true,
         validFrom,
         validTo
-    );
-    assignmentsById.put(assignment.id(), assignment);
-    auditService.record("assignment_created", actorRoleCode, "assignment", String.valueOf(assignment.id()), "Assignment aangemaakt");
-    return assignment;
+    ));
+    auditService.record("assignment_created", actorRoleCode, "assignment", String.valueOf(assignment.getId()), "Assignment aangemaakt");
+    return toDomain(assignment);
   }
 
   public UserAssignment updateAssignment(
@@ -67,17 +75,28 @@ public final class UserAssignmentAdminService {
       Instant validTo,
       Boolean active
   ) {
-    UserAssignment existing = assignmentsById.get(assignmentId);
-    if (existing == null) {
-      throw new NoSuchElementException("Assignment niet gevonden.");
-    }
+    UserAssignmentEntity existing = userAssignmentRepository.findById(assignmentId)
+        .orElseThrow(() -> new NoSuchElementException("Assignment niet gevonden."));
     if (roleCode != null) {
-      roleAdminService.requireRoleByCode(roleCode);
+      Role role = roleAdminService.requireRoleByCode(roleCode);
+      if (role.scopeType() != existing.getScopeType()) {
+        throw new IllegalArgumentException("Nieuwe rol moet dezelfde scope hebben als de assignment.");
+      }
+      existing.setRoleCode(role.code());
+      existing.setPermissionLevel(role.permissionLevel());
     }
-    UserAssignment updated = existing.withPatch(roleCode, validFrom, validTo, active);
-    assignmentsById.put(assignmentId, updated);
-    auditService.record("assignment_updated", actorRoleCode, "assignment", String.valueOf(updated.id()), "Assignment bijgewerkt");
-    return updated;
+    if (validFrom != null) {
+      existing.setValidFrom(validFrom);
+    }
+    if (validTo != null) {
+      existing.setValidTo(validTo);
+    }
+    if (active != null) {
+      existing.setActive(active);
+    }
+    UserAssignmentEntity updated = userAssignmentRepository.save(existing);
+    auditService.record("assignment_updated", actorRoleCode, "assignment", String.valueOf(updated.getId()), "Assignment bijgewerkt");
+    return toDomain(updated);
   }
 
   private void validateScope(ScopeType scopeType, Long boardId, Long schoolId) {
@@ -99,5 +118,20 @@ public final class UserAssignmentAdminService {
       }
       default -> throw new IllegalStateException("Onbekende scope.");
     }
+  }
+
+  private UserAssignment toDomain(UserAssignmentEntity entity) {
+    return new UserAssignment(
+        entity.getId(),
+        entity.getUserId(),
+        entity.getRoleCode(),
+        entity.getScopeType(),
+        entity.getBoardId(),
+        entity.getSchoolId(),
+        entity.getPermissionLevel(),
+        entity.isActive(),
+        entity.getValidFrom(),
+        entity.getValidTo()
+    );
   }
 }

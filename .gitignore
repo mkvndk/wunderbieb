@@ -4,3 +4,5 @@ node_modules/
 .m2/
 ui/dist/
 ui/tsconfig.tsbuildinfo
+.env
+deploy/compose/.env

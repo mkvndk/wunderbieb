@@ -1,0 +1,118 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${MINIO_API_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        until mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do
+          echo 'Wachten op MinIO...';
+          sleep 2;
+        done &&
+        mc mb --ignore-existing local/${KMS_MINIO_BUCKET}
+    restart: "no"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/api.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      KMS_DB_URL: ${KMS_DB_URL}
+      KMS_DB_USERNAME: ${KMS_DB_USERNAME}
+      KMS_DB_PASSWORD: ${KMS_DB_PASSWORD}
+      KMS_MINIO_ENDPOINT: ${KMS_MINIO_ENDPOINT}
+      KMS_MINIO_ACCESS_KEY: ${KMS_MINIO_ACCESS_KEY}
+      KMS_MINIO_SECRET_KEY: ${KMS_MINIO_SECRET_KEY}
+      KMS_MINIO_BUCKET: ${KMS_MINIO_BUCKET}
+      KMS_OIDC_ENABLED: ${KMS_OIDC_ENABLED}
+      KMS_DEBUG_ROLE_HEADER_ENABLED: ${KMS_DEBUG_ROLE_HEADER_ENABLED}
+      KMS_DEBUG_ROLE_HEADER_NAME: ${KMS_DEBUG_ROLE_HEADER_NAME}
+    ports:
+      - "${API_PORT}:8080"
+    volumes:
+      - ../..:/workspace
+      - maven-cache:/root/.m2
+    working_dir: /workspace
+    command:
+      - mvn
+      - -f
+      - backend/pom.xml
+      - -pl
+      - kms-api-application
+      - -am
+      - spring-boot:run
+      - -DskipTests
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  ui:
+    build:
+      context: ../..
+      dockerfile: deploy/compose/ui.Dockerfile
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "${UI_PORT}:5173"
+    volumes:
+      - ../..:/workspace
+      - ui-node-modules:/workspace/ui/node_modules
+    working_dir: /workspace/ui
+    command:
+      - /bin/bash
+      - -lc
+      - npm ci && npm run dev -- --host 0.0.0.0 --port 5173
+
+volumes:
+  postgres-data:
+  minio-data:
+  maven-cache:
+  ui-node-modules:

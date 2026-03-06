@@ -4,49 +4,80 @@ import java.util.List;
 import nl.wunderbieb.kms.taxonomy.model.DocumentTypeDefinition;
 import nl.wunderbieb.kms.taxonomy.model.InspectionDomainDefinition;
 import nl.wunderbieb.kms.taxonomy.model.InspectionTopicDefinition;
+import nl.wunderbieb.kms.taxonomy.repository.DocumentTypeDefinitionEntity;
+import nl.wunderbieb.kms.taxonomy.repository.DocumentTypeDefinitionRepository;
+import nl.wunderbieb.kms.taxonomy.repository.InspectionDomainEntity;
+import nl.wunderbieb.kms.taxonomy.repository.InspectionDomainRepository;
+import nl.wunderbieb.kms.taxonomy.repository.InspectionTopicEntity;
+import nl.wunderbieb.kms.taxonomy.repository.InspectionTopicRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class TaxonomyCatalogService {
 
-  private static final List<DocumentTypeDefinition> DOCUMENT_TYPES = List.of(
-      new DocumentTypeDefinition(1L, "VISION_DOCUMENT", "Visiedocument", "Documenttype voor visie en koers", true, true),
-      new DocumentTypeDefinition(2L, "QUALITY_CARD", "Kwaliteitskaart", "Documenttype voor werkwijzen en kwaliteitsborging", true, true),
-      new DocumentTypeDefinition(3L, "AMBITION_DOCUMENT", "Ambitiedocument", "Documenttype voor ontwikkeldoelen", true, false)
-  );
+  private final DocumentTypeDefinitionRepository documentTypeDefinitionRepository;
+  private final InspectionDomainRepository inspectionDomainRepository;
+  private final InspectionTopicRepository inspectionTopicRepository;
 
-  private static final List<InspectionDomainDefinition> DOMAINS = List.of(
-      new InspectionDomainDefinition(
-          1L,
-          "SKA",
-          "Sturen, kwaliteitszorg en ambitie",
-          "Hoofddomein voor kwaliteitssturing",
-          1,
-          true,
-          List.of(
-              new InspectionTopicDefinition(1L, "SKA1", "Visie, ambities en doelen", "Strategische koers en doelstelling", 1, true),
-              new InspectionTopicDefinition(2L, "SKA2", "Uitvoering en kwaliteitscultuur", "Dagelijkse uitvoering en cultuur", 2, true)
-          )
-      ),
-      new InspectionDomainDefinition(
-          2L,
-          "OP",
-          "Onderwijsproces",
-          "Hoofddomein voor onderwijsproces en begeleiding",
-          2,
-          true,
-          List.of(
-              new InspectionTopicDefinition(3L, "OP1", "Aanbod", "Onderwijsaanbod en dekking", 1, true),
-              new InspectionTopicDefinition(4L, "OP2", "Zicht op ontwikkeling", "Signalering en begeleiding", 2, true)
-          )
-      )
-  );
+  public TaxonomyCatalogService(
+      DocumentTypeDefinitionRepository documentTypeDefinitionRepository,
+      InspectionDomainRepository inspectionDomainRepository,
+      InspectionTopicRepository inspectionTopicRepository
+  ) {
+    this.documentTypeDefinitionRepository = documentTypeDefinitionRepository;
+    this.inspectionDomainRepository = inspectionDomainRepository;
+    this.inspectionTopicRepository = inspectionTopicRepository;
+  }
 
   public List<DocumentTypeDefinition> findDocumentTypes() {
-    return DOCUMENT_TYPES;
+    return documentTypeDefinitionRepository.findAllByOrderByIdAsc().stream()
+        .map(this::toDocumentTypeDefinition)
+        .toList();
   }
 
   public List<InspectionDomainDefinition> findInspectionDomains() {
-    return DOMAINS;
+    List<InspectionDomainEntity> domains = inspectionDomainRepository.findAllByOrderBySortOrderAscIdAsc();
+    List<Long> domainIds = domains.stream().map(InspectionDomainEntity::getId).toList();
+    List<InspectionTopicEntity> topics = domainIds.isEmpty()
+        ? List.of()
+        : inspectionTopicRepository.findAllByDomainIdInOrderByDomainIdAscSortOrderAscIdAsc(domainIds);
+    return domains.stream()
+        .map(domain -> new InspectionDomainDefinition(
+            domain.getId(),
+            domain.getCode(),
+            domain.getDisplayNameNl(),
+            domain.getDescriptionNl(),
+            domain.getSortOrder(),
+            domain.isActive(),
+            topics.stream()
+                .filter(topic -> topic.getDomainId() == domain.getId())
+                .map(this::toInspectionTopicDefinition)
+                .toList()
+        ))
+        .toList();
+  }
+
+  private DocumentTypeDefinition toDocumentTypeDefinition(DocumentTypeDefinitionEntity entity) {
+    return new DocumentTypeDefinition(
+        entity.getId(),
+        entity.getCode(),
+        entity.getDisplayNameNl(),
+        entity.getDescriptionNl(),
+        entity.isActive(),
+        entity.isRequiredForOnboarding()
+    );
+  }
+
+  private InspectionTopicDefinition toInspectionTopicDefinition(InspectionTopicEntity entity) {
+    return new InspectionTopicDefinition(
+        entity.getId(),
+        entity.getCode(),
+        entity.getDisplayNameNl(),
+        entity.getDescriptionNl(),
+        entity.getSortOrder(),
+        entity.isActive()
+    );
   }
 }
