@@ -1,3 +1,6 @@
 .idea/
 target/
 node_modules/
+.m2/
+ui/dist/
+ui/tsconfig.tsbuildinfo
