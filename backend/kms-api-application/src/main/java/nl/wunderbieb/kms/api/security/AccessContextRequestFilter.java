@@ -8,10 +8,8 @@ import java.io.IOException;
 import nl.wunderbieb.kms.api.config.KmsSecurityProperties;
 import nl.wunderbieb.kms.users.domain.Role;
 import nl.wunderbieb.kms.users.service.RoleAdminService;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-@Component
 public class AccessContextRequestFilter extends OncePerRequestFilter {
 
   static final String ACCESS_CONTEXT_ATTRIBUTE = AccessContextRequestFilter.class.getName() + ".accessContext";

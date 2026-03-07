@@ -11,6 +11,8 @@ kms:
   security:
     oidc-enabled: false
     debug-role-header-enabled: true
+    oidc-issuer-uri:
+    oidc-jwk-set-uri:
   storage:
     minio:
       endpoint: http://localhost:9000

@@ -18,6 +18,7 @@
     <module>kms-org</module>
     <module>kms-users</module>
     <module>kms-taxonomy</module>
+    <module>kms-docs</module>
     <module>kms-insights</module>
     <module>kms-audit</module>
     <module>kms-api-application</module>

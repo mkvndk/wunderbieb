@@ -1,105 +1,53 @@
-# KMS – Rollen & Rechtenmodel
+# wunderbieb
 
-## 1. Organisatielagen
+Repository voor het KMS-platform van Wunderbieb.
 
-Het KMS werkt met drie organisatielagen:
+De bron van waarheid voor projectdocumentatie staat in [`docs/`](./docs/index.md). Gebruik die map als startpunt voor architectuur, productafspraken, backend, frontend, toegankelijkheid en scoring.
 
-1. **Bestuur**
-2. **School**
-3. **Extern**
+## Vastgestelde stack
 
-Rechten worden bepaald op basis van de rol van een gebruiker binnen één van deze lagen.
+- Backend: Java 25, Spring Boot 3.5.x
+- Database: PostgreSQL met Row Level Security
+- Object storage: MinIO (S3-compatibel)
+- Frontend: React
+- Authenticatie: OIDC
 
----
+## Huidige status
 
-# 2. Overerving van Rechten
+Dit project zit nog in de opstartfase, maar bevat inmiddels wel een eerste werkende codebasis naast de documentatie.
 
-Rechten op **bestuursniveau** gelden automatisch voor **alle onderliggende scholen**.
+Afgerond:
 
-Dit betekent:
+- documentatie onder `docs/` als bron van waarheid
+- backend multi-module Maven bootstrap
+- eerste admin-API's voor rollen, capabilities, assignments, taxonomie en scoreconfiguratie
+- PostgreSQL/Flyway/JPA-basis met seeddata voor beheerreferenties
+- audit-opslag via database
+- React beheershell in `ui/`
 
-- Gebruikers met bestuursrechten kunnen **alle scholen zien**
-- Gebruikers met alleen schoolrechten zien **uitsluitend hun eigen school**
-- Gebruikers met alleen externrechten zien **uitsluitend hun eigen school**
+Nog open:
 
----
+- echte OIDC claim-mapping naar assignments en capabilities
+- PostgreSQL en MinIO in een lokale runtime-setup
+- documentmodule, onboardingopslag, zoekfunctie en insights-aggregaties
+- React koppelen aan live API's in plaats van mockdata
 
-# 3. Rollen
+Zie [`docs/status.md`](./docs/status.md) voor de actuele voortgang per onderdeel.
 
-## 3.1 Bestuursniveau
+## Kernprincipes
 
-| Rol | Rechten |
-|----|----|
-| Bestuurder | Alleen lezen |
-| Bestuurs Kwaliteitscoördinator | Lezen + schrijven |
+- Server-side autorisatie is leidend.
+- Scope-filtering geldt op applicatie- en databaseniveau.
+- Externe rollen hebben een eigen scopetype en eigen datafilter.
+- Alle productteksten zijn Nederlands.
+- Webinterfaces voldoen minimaal aan WCAG 2.2 AA / EN 301 549.
 
----
+## Startpunt
 
-## 3.2 Schoolniveau
+Open [`docs/index.md`](./docs/index.md) en lees daarna ten minste:
 
-| Rol | Rechten |
-|----|----|
-| Directeur | Lezen + schrijven |
-| Kwaliteitscoördinator | Lezen + schrijven |
-| Teamleden | Alleen lezen |
-| MR-leden | Alleen lezen |
-
----
-
-## 3.3 Extern niveau
-
-| Rol | Rechten |
-|----|----|
-| Onderwijsadviseur | Lezen + schrijven |
-
----
-
-# 4. Rechttypen
-
-Het systeem kent twee typen rechten.
-
-## Alleen lezen
-
-Gebruikers kunnen:
-
-- Documenten bekijken
-- Dashboards bekijken
-- Informatie raadplegen
-
-Deze rollen zijn:
-
-- Bestuurder
-- Teamleden
-- MR-leden
-
----
-
-## Lezen + schrijven
-
-Gebruikers kunnen:
-
-- Documenten maken
-- Documenten bewerken
-- Documenten beoordelen
-- Gebruikers aanmaken of beheren
-- Documentstatus wijzigen
-
-Deze rollen zijn:
-
-- Bestuurs Kwaliteitscoördinator
-- Directeur
-- Kwaliteitscoördinator
-- Onderwijsadviseur
-
----
-
-# 5. Uitbreidbaarheid
-
-Nieuwe rollen kunnen eenvoudig worden toegevoegd.
-
-Elke nieuwe rol valt altijd onder één van deze twee rechtenniveaus:
-
-- **Alleen lezen**
-- **Lezen + schrijven**
-
-Hierdoor blijft het rechtenmodel eenvoudig en beheersbaar.
+1. `docs/architecture/overview.md`
+2. `docs/architecture/authz-and-scope.md`
+3. `docs/product/document-types-and-workflows.md`
+4. `docs/product/scoring-and-inspection-model.md`
+5. `docs/frontend/accessibility-and-language.md`

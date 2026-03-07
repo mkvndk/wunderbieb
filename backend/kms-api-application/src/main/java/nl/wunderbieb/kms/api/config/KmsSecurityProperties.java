@@ -7,6 +7,8 @@ public record KmsSecurityProperties(
     boolean oidcEnabled,
     boolean debugRoleHeaderEnabled,
     String debugRoleHeaderName,
-    String adminRequiredRoleCode
+    String adminRequiredRoleCode,
+    String oidcIssuerUri,
+    String oidcJwkSetUri
 ) {
 }

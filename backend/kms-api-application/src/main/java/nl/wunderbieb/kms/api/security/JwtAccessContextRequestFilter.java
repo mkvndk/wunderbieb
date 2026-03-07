@@ -5,26 +5,21 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 import nl.wunderbieb.kms.api.config.KmsSecurityProperties;
-import nl.wunderbieb.kms.commons.access.PermissionLevel;
-import nl.wunderbieb.kms.commons.access.ScopeType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-@Component
 public class JwtAccessContextRequestFilter extends OncePerRequestFilter {
 
   private final KmsSecurityProperties properties;
+  private final OidcAccessContextService oidcAccessContextService;
 
-  public JwtAccessContextRequestFilter(KmsSecurityProperties properties) {
+  public JwtAccessContextRequestFilter(KmsSecurityProperties properties, OidcAccessContextService oidcAccessContextService) {
     this.properties = properties;
+    this.oidcAccessContextService = oidcAccessContextService;
   }
 
   @Override
@@ -42,42 +37,9 @@ public class JwtAccessContextRequestFilter extends OncePerRequestFilter {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication instanceof JwtAuthenticationToken jwtAuthenticationToken) {
       Jwt jwt = jwtAuthenticationToken.getToken();
-      request.setAttribute(AccessContextRequestFilter.ACCESS_CONTEXT_ATTRIBUTE, new AccessContext(
-          resolveRoleCode(jwt),
-          resolveScopeType(jwt),
-          resolvePermissionLevel(jwt),
-          resolveCapabilities(jwt)
-      ));
+      oidcAccessContextService.resolve(jwt)
+          .ifPresent(accessContext -> request.setAttribute(AccessContextRequestFilter.ACCESS_CONTEXT_ATTRIBUTE, accessContext));
     }
     filterChain.doFilter(request, response);
-  }
-
-  private String resolveRoleCode(Jwt jwt) {
-    Object roleCodes = jwt.getClaims().get("role_codes");
-    if (roleCodes instanceof Collection<?> collection && !collection.isEmpty()) {
-      return String.valueOf(collection.iterator().next());
-    }
-    return jwt.getClaimAsString("role_code") != null ? jwt.getClaimAsString("role_code") : "AUTHENTICATED_USER";
-  }
-
-  private ScopeType resolveScopeType(Jwt jwt) {
-    String value = jwt.getClaimAsString("scope_type");
-    if (value == null || value.isBlank()) {
-      return ScopeType.SCHOOL;
-    }
-    return ScopeType.valueOf(value.toUpperCase());
-  }
-
-  private PermissionLevel resolvePermissionLevel(Jwt jwt) {
-    String value = jwt.getClaimAsString("permission_level");
-    if (value == null || value.isBlank()) {
-      return PermissionLevel.READ;
-    }
-    return PermissionLevel.valueOf(value.toUpperCase());
-  }
-
-  private Set<String> resolveCapabilities(Jwt jwt) {
-    List<String> capabilities = jwt.getClaimAsStringList("capabilities");
-    return capabilities == null ? Set.of() : Set.copyOf(capabilities);
   }
 }

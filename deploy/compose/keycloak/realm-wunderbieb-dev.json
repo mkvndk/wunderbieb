@@ -1,0 +1,275 @@
+{
+  "realm": "wunderbieb-dev",
+  "enabled": true,
+  "displayName": "Wunderbieb Dev",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "clients": [
+    {
+      "clientId": "wunderbieb-ui",
+      "name": "Wunderbieb UI",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "defaultClientScopes": [
+        "wunderbieb-claims"
+      ],
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:15173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "http://localhost:15173"
+      ]
+    },
+    {
+      "clientId": "wunderbieb-cli",
+      "name": "Wunderbieb CLI",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "wunderbieb-claims",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "user_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "user_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "user_id",
+            "jsonType.label": "long"
+          }
+        },
+        {
+          "name": "role_code",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "role_code",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "role_code",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "scope_type",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "scope_type",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "scope_type",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "board_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "board_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "board_id",
+            "jsonType.label": "long"
+          }
+        },
+        {
+          "name": "school_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "school_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "school_id",
+            "jsonType.label": "long"
+          }
+        }
+      ]
+    }
+  ],
+  "defaultDefaultClientScopes": [
+    "wunderbieb-claims"
+  ],
+  "users": [
+    {
+      "username": "super-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "super-admin@wunderbieb.local",
+      "firstName": "Super",
+      "lastName": "Admin",
+      "attributes": {
+        "user_id": ["1"],
+        "role_code": ["PLATFORM_ADMIN"],
+        "scope_type": ["PLATFORM"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Welkom123!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "bestuurder",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bestuurder@wunderbieb.local",
+      "firstName": "Demo",
+      "lastName": "Bestuurder",
+      "attributes": {
+        "user_id": ["12"],
+        "role_code": ["BESTUURDER"],
+        "scope_type": ["BOARD"],
+        "board_id": ["12"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Welkom123!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "bestuurs-kc",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bestuurs-kc@wunderbieb.local",
+      "firstName": "Demo",
+      "lastName": "BestuursKC",
+      "attributes": {
+        "user_id": ["13"],
+        "role_code": ["BESTUURS_KC"],
+        "scope_type": ["BOARD"],
+        "board_id": ["12"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Welkom123!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "directeur",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "directeur@wunderbieb.local",
+      "firstName": "Demo",
+      "lastName": "Directeur",
+      "attributes": {
+        "user_id": ["42"],
+        "role_code": ["DIRECTEUR"],
+        "scope_type": ["SCHOOL"],
+        "board_id": ["12"],
+        "school_id": ["42"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Welkom123!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "teamlid",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "teamlid@wunderbieb.local",
+      "firstName": "Demo",
+      "lastName": "Teamlid",
+      "attributes": {
+        "user_id": ["43"],
+        "role_code": ["TEAMLID"],
+        "scope_type": ["SCHOOL"],
+        "board_id": ["12"],
+        "school_id": ["42"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Welkom123!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "onderwijsadviseur",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "onderwijsadviseur@wunderbieb.local",
+      "firstName": "Demo",
+      "lastName": "Onderwijsadviseur",
+      "attributes": {
+        "user_id": ["84"],
+        "role_code": ["ONDERWIJSADVISEUR"],
+        "scope_type": ["EXTERN"],
+        "school_id": ["42"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Welkom123!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "zonder-assignment",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "zonder-assignment@wunderbieb.local",
+      "firstName": "Demo",
+      "lastName": "ZonderAssignment",
+      "attributes": {
+        "user_id": ["9999"],
+        "role_code": ["PLATFORM_ADMIN"],
+        "scope_type": ["PLATFORM"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Welkom123!",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

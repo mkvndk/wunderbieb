@@ -31,6 +31,12 @@ button:focus-visible {
   background: #0b3944;
 }
 
+button:disabled,
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  background: #9ab3bc;
+}
+
 .app-shell {
   max-width: 1200px;
   margin: 0 auto;
@@ -52,6 +58,10 @@ button:focus-visible {
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1.5rem;
   padding: 2rem 0 1rem;
 }
 
@@ -67,6 +77,12 @@ button:focus-visible {
 .hero-card h2,
 .panel h2 {
   margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .intro {
@@ -142,6 +158,10 @@ button:focus-visible {
   padding: 1rem;
 }
 
+.card h3 {
+  margin-top: 0;
+}
+
 .card ul {
   padding-left: 1.25rem;
   margin-bottom: 0;
@@ -185,6 +205,16 @@ thead th {
   color: #8b3d22;
 }
 
+.taxonomy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.topic-code {
+  color: #4f6477;
+}
+
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -193,6 +223,96 @@ thead th {
   background: #e4f4e8;
   color: #1e5c2f;
   font-weight: 700;
+}
+
+.error-card {
+  border-color: rgba(156, 34, 34, 0.18);
+  background: rgba(255, 244, 244, 0.96);
+}
+
+.editor-meta {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.editor-meta label {
+  font-weight: 700;
+}
+
+.editor-meta select {
+  max-width: 320px;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.6rem;
+  border: 1px solid #c7d4e2;
+  font: inherit;
+}
+
+.editor-title-input {
+  max-width: 560px;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.6rem;
+  border: 1px solid #c7d4e2;
+  font: inherit;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.editor-toolbar button {
+  border-radius: 0.6rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.editor-toolbar button[aria-pressed="true"] {
+  background: #8b3d22;
+}
+
+.tiptap-editor-content {
+  min-height: 260px;
+  border: 1px solid #d4dfeb;
+  border-radius: 0.8rem;
+  padding: 0.9rem;
+  background: #fff;
+  outline: none;
+}
+
+.tiptap-editor-content:focus-within {
+  border-color: #0f4c5c;
+  box-shadow: 0 0 0 3px rgba(15, 76, 92, 0.16);
+}
+
+.tiptap-editor-content > :first-child {
+  margin-top: 0;
+}
+
+.editor-actions {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.editor-actions .muted {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .editor-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor-title-input,
+  .editor-meta select {
+    max-width: 100%;
+  }
 }
 
 .sr-only {
@@ -208,12 +328,13 @@ thead th {
 }
 
 @media (max-width: 720px) {
+  .page-header,
   .panel-header,
   .score-row {
-    grid-template-columns: 1fr;
     align-items: start;
   }
 
+  .page-header,
   .panel-header {
     flex-direction: column;
     align-items: stretch;

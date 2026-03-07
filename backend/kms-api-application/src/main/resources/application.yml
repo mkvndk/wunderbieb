@@ -23,6 +23,8 @@ kms:
     debug-role-header-enabled: ${KMS_DEBUG_ROLE_HEADER_ENABLED:true}
     debug-role-header-name: X-Demo-Role-Code
     admin-required-role-code: PLATFORM_ADMIN
+    oidc-issuer-uri: ${KMS_OIDC_ISSUER_URI:}
+    oidc-jwk-set-uri: ${KMS_OIDC_JWK_SET_URI:}
   storage:
     minio:
       endpoint: ${KMS_MINIO_ENDPOINT:}

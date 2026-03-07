@@ -45,12 +45,14 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:latest
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     ports:
       - "${KEYCLOAK_PORT}:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
 
   api:
     build:
@@ -70,6 +72,8 @@ services:
       KMS_MINIO_SECRET_KEY: ${KMS_MINIO_SECRET_KEY}
       KMS_MINIO_BUCKET: ${KMS_MINIO_BUCKET}
       KMS_OIDC_ENABLED: ${KMS_OIDC_ENABLED}
+      KMS_OIDC_ISSUER_URI: ${KMS_OIDC_ISSUER_URI}
+      KMS_OIDC_JWK_SET_URI: ${KMS_OIDC_JWK_SET_URI}
       KMS_DEBUG_ROLE_HEADER_ENABLED: ${KMS_DEBUG_ROLE_HEADER_ENABLED}
       KMS_DEBUG_ROLE_HEADER_NAME: ${KMS_DEBUG_ROLE_HEADER_NAME}
     ports:
@@ -79,14 +83,11 @@ services:
       - maven-cache:/root/.m2
     working_dir: /workspace
     command:
-      - mvn
-      - -f
-      - backend/pom.xml
-      - -pl
-      - kms-api-application
-      - -am
-      - spring-boot:run
-      - -DskipTests
+      - /bin/bash
+      - -lc
+      - >
+        mvn -f backend/pom.xml -pl kms-api-application -am package -DskipTests &&
+        java -jar backend/kms-api-application/target/kms-api-application-0.0.1-SNAPSHOT.jar
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 15s
@@ -102,6 +103,11 @@ services:
         condition: service_started
     ports:
       - "${UI_PORT}:5173"
+    environment:
+      VITE_API_PROXY_TARGET: http://api:8080
+      VITE_OIDC_PROXY_TARGET: http://keycloak:8080
+      VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:-wunderbieb-ui}
+      VITE_OIDC_REALM: ${VITE_OIDC_REALM:-wunderbieb-dev}
     volumes:
       - ../..:/workspace
       - ui-node-modules:/workspace/ui/node_modules
