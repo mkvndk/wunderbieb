@@ -1,16 +1,22 @@
 package nl.wunderbieb.kms.docs.service;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import nl.wunderbieb.kms.audit.service.AuditService;
 import nl.wunderbieb.kms.commons.access.ScopeType;
+import nl.wunderbieb.kms.docs.domain.DocumentOnboardingStatus;
 import nl.wunderbieb.kms.docs.domain.DocumentSnapshot;
 import nl.wunderbieb.kms.docs.domain.DocumentVersion;
 import nl.wunderbieb.kms.docs.domain.DocumentVersionStatus;
 import nl.wunderbieb.kms.docs.domain.DocumentWorkflowStatus;
 import nl.wunderbieb.kms.docs.repository.DocumentEntity;
 import nl.wunderbieb.kms.docs.repository.DocumentRepository;
+import nl.wunderbieb.kms.docs.repository.DocumentUserStatusEntity;
+import nl.wunderbieb.kms.docs.repository.DocumentUserStatusRepository;
 import nl.wunderbieb.kms.docs.repository.DocumentVersionEntity;
 import nl.wunderbieb.kms.docs.repository.DocumentVersionRepository;
 import org.springframework.stereotype.Service;
@@ -23,43 +29,56 @@ public class DocumentEditorService {
   private final AuditService auditService;
   private final DocumentRepository documentRepository;
   private final DocumentVersionRepository documentVersionRepository;
+  private final DocumentUserStatusRepository documentUserStatusRepository;
 
   public DocumentEditorService(
       AuditService auditService,
       DocumentRepository documentRepository,
-      DocumentVersionRepository documentVersionRepository
+      DocumentVersionRepository documentVersionRepository,
+      DocumentUserStatusRepository documentUserStatusRepository
   ) {
     this.auditService = auditService;
     this.documentRepository = documentRepository;
     this.documentVersionRepository = documentVersionRepository;
+    this.documentUserStatusRepository = documentUserStatusRepository;
   }
 
   @Transactional(readOnly = true)
-  public List<DocumentSnapshot> listDocuments() {
-    return documentRepository.findTop100ByOrderByUpdatedAtDesc().stream()
-        .map(this::toSnapshot)
+  public List<DocumentSnapshot> listDocuments(long actorUserId) {
+    List<DocumentEntity> documents = documentRepository.findTop100ByOrderByUpdatedAtDesc();
+    Map<Long, DocumentUserStatusEntity> userStatusByDocumentId = resolveUserStatusByDocumentId(documents, actorUserId);
+    return documents.stream()
+        .map(document -> toSnapshot(document, userStatusByDocumentId.get(document.getId())))
         .toList();
   }
 
   @Transactional(readOnly = true)
-  public DocumentSnapshot getDocument(long documentId) {
-    return toSnapshot(requireDocument(documentId));
+  public DocumentSnapshot getDocument(long documentId, long actorUserId) {
+    DocumentEntity document = requireDocument(documentId);
+    DocumentUserStatusEntity userStatus = documentUserStatusRepository.findByDocumentIdAndUserId(documentId, actorUserId).orElse(null);
+    return toSnapshot(document, userStatus);
   }
 
   public DocumentSnapshot createDocument(
       String actorRoleCode,
       long actorUserId,
+      String documentTypeCode,
+      String title,
+      String summary,
+      String sourceReference,
+      Instant publishedAt,
       ScopeType scopeType,
       Long boardId,
       Long schoolId,
-      String documentTypeCode,
-      String title,
       String contentJson
   ) {
     Instant now = Instant.now();
     DocumentEntity document = documentRepository.save(new DocumentEntity(
         documentTypeCode,
         title,
+        summary,
+        sourceReference,
+        publishedAt,
         scopeType,
         boardId,
         schoolId,
@@ -79,8 +98,16 @@ public class DocumentEditorService {
         actorUserId,
         now
     ));
+    DocumentUserStatusEntity userStatus = documentUserStatusRepository.save(new DocumentUserStatusEntity(
+        document,
+        actorUserId,
+        DocumentOnboardingStatus.OPEN,
+        null,
+        now,
+        actorUserId
+    ));
     auditService.record("document_created", actorRoleCode, "document", String.valueOf(document.getId()), "Document aangemaakt");
-    return toSnapshot(document);
+    return toSnapshot(document, userStatus);
   }
 
   public DocumentSnapshot createDraftVersion(
@@ -113,7 +140,7 @@ public class DocumentEditorService {
         String.valueOf(documentId),
         "Nieuwe conceptversie " + nextVersion
     );
-    return toSnapshot(document);
+    return toSnapshot(document, documentUserStatusRepository.findByDocumentIdAndUserId(documentId, actorUserId).orElse(null));
   }
 
   public DocumentSnapshot submitForReview(String actorRoleCode, long documentId, int versionNumber) {
@@ -131,7 +158,7 @@ public class DocumentEditorService {
         String.valueOf(documentId),
         "Versie " + versionNumber + " aangeboden ter review"
     );
-    return toSnapshot(document);
+    return toSnapshot(document, null);
   }
 
   public DocumentSnapshot approve(String actorRoleCode, long documentId, int versionNumber) {
@@ -150,7 +177,41 @@ public class DocumentEditorService {
         String.valueOf(documentId),
         "Versie " + versionNumber + " goedgekeurd"
     );
-    return toSnapshot(document);
+    return toSnapshot(document, null);
+  }
+
+  public DocumentSnapshot updateOnboardingStatus(
+      String actorRoleCode,
+      long actorUserId,
+      long documentId,
+      DocumentOnboardingStatus onboardingStatus
+  ) {
+    DocumentEntity document = requireDocument(documentId);
+    Instant now = Instant.now();
+    DocumentUserStatusEntity userStatus = documentUserStatusRepository.findByDocumentIdAndUserId(documentId, actorUserId)
+        .orElse(new DocumentUserStatusEntity(
+            document,
+            actorUserId,
+            DocumentOnboardingStatus.OPEN,
+            null,
+            now,
+            actorUserId
+        ));
+    userStatus.setOnboardingStatus(onboardingStatus);
+    if (onboardingStatus == DocumentOnboardingStatus.GELEZEN) {
+      userStatus.setLastReadAt(now);
+    }
+    userStatus.setUpdatedAt(now);
+    userStatus.setUpdatedByUserId(actorUserId);
+    documentUserStatusRepository.save(userStatus);
+    auditService.record(
+        "document_onboarding_status_updated",
+        actorRoleCode,
+        "document",
+        String.valueOf(documentId),
+        "Onboardingstatus gezet op " + onboardingStatus.name()
+    );
+    return toSnapshot(document, userStatus);
   }
 
   private DocumentEntity requireDocument(long documentId) {
@@ -163,14 +224,29 @@ public class DocumentEditorService {
         .orElseThrow(() -> new NoSuchElementException("Documentversie niet gevonden."));
   }
 
-  private DocumentSnapshot toSnapshot(DocumentEntity document) {
+  private Map<Long, DocumentUserStatusEntity> resolveUserStatusByDocumentId(List<DocumentEntity> documents, long userId) {
+    if (documents.isEmpty()) {
+      return Map.of();
+    }
+    List<Long> documentIds = documents.stream().map(DocumentEntity::getId).toList();
+    return documentUserStatusRepository.findAllByUserIdAndDocumentIdIn(userId, documentIds).stream()
+        .collect(Collectors.toMap(status -> status.getDocument().getId(), Function.identity()));
+  }
+
+  private DocumentSnapshot toSnapshot(DocumentEntity document, DocumentUserStatusEntity userStatus) {
     List<DocumentVersion> versions = documentVersionRepository.findAllByDocumentIdOrderByVersionNumberDesc(document.getId()).stream()
         .map(this::toVersion)
         .toList();
+    DocumentOnboardingStatus onboardingStatus = userStatus != null ? userStatus.getOnboardingStatus() : DocumentOnboardingStatus.OPEN;
+    Instant lastReadAt = userStatus != null ? userStatus.getLastReadAt() : null;
+    Instant onboardingUpdatedAt = userStatus != null ? userStatus.getUpdatedAt() : null;
     return new DocumentSnapshot(
         document.getId(),
         document.getDocumentTypeCode(),
         document.getTitle(),
+        document.getSummary(),
+        document.getSourceReference(),
+        document.getPublishedAt(),
         document.getScopeType(),
         document.getBoardId(),
         document.getSchoolId(),
@@ -180,6 +256,9 @@ public class DocumentEditorService {
         document.isActive(),
         document.getCreatedAt(),
         document.getUpdatedAt(),
+        onboardingStatus,
+        lastReadAt,
+        onboardingUpdatedAt,
         versions
     );
   }

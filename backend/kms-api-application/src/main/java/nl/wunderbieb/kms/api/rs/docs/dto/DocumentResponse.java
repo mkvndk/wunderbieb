@@ -8,6 +8,9 @@ public record DocumentResponse(
     long id,
     String documentTypeCode,
     String title,
+    String summary,
+    String sourceReference,
+    Instant publishedAt,
     String scopeType,
     Long boardId,
     Long schoolId,
@@ -17,6 +20,9 @@ public record DocumentResponse(
     boolean active,
     Instant createdAt,
     Instant updatedAt,
+    String onboardingStatus,
+    Instant lastReadAt,
+    Instant onboardingUpdatedAt,
     List<DocumentVersionResponse> versions
 ) {
 
@@ -25,6 +31,9 @@ public record DocumentResponse(
         snapshot.id(),
         snapshot.documentTypeCode(),
         snapshot.title(),
+        snapshot.summary(),
+        snapshot.sourceReference(),
+        snapshot.publishedAt(),
         snapshot.scopeType().name(),
         snapshot.boardId(),
         snapshot.schoolId(),
@@ -34,6 +43,9 @@ public record DocumentResponse(
         snapshot.active(),
         snapshot.createdAt(),
         snapshot.updatedAt(),
+        snapshot.onboardingStatus().name(),
+        snapshot.lastReadAt(),
+        snapshot.onboardingUpdatedAt(),
         snapshot.versions().stream().map(DocumentVersionResponse::from).toList()
     );
   }

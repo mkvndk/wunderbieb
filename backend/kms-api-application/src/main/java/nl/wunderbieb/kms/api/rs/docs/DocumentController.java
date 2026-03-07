@@ -3,6 +3,7 @@ package nl.wunderbieb.kms.api.rs.docs;
 import jakarta.validation.Valid;
 import java.util.List;
 import nl.wunderbieb.kms.api.rs.docs.dto.DocumentCreateRequest;
+import nl.wunderbieb.kms.api.rs.docs.dto.DocumentOnboardingStatusRequest;
 import nl.wunderbieb.kms.api.rs.docs.dto.DocumentResponse;
 import nl.wunderbieb.kms.api.rs.docs.dto.DocumentVersionCreateRequest;
 import nl.wunderbieb.kms.api.rs.docs.dto.DocumentWorkflowRequest;
@@ -13,6 +14,7 @@ import nl.wunderbieb.kms.docs.service.DocumentEditorService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,17 +34,17 @@ public class DocumentController {
   }
 
   @GetMapping("/documents")
-  public List<DocumentResponse> listDocuments() {
+  public List<DocumentResponse> listDocuments(@AuthenticationPrincipal Jwt jwt) {
     AccessContext context = accessContextResolver.requireCurrentContext();
     context.requireCapability("EDIT_DOCUMENT");
-    return documentEditorService.listDocuments().stream().map(DocumentResponse::from).toList();
+    return documentEditorService.listDocuments(getRequiredUserId(jwt)).stream().map(DocumentResponse::from).toList();
   }
 
   @GetMapping("/documents/{documentId}")
-  public DocumentResponse getDocument(@PathVariable long documentId) {
+  public DocumentResponse getDocument(@PathVariable long documentId, @AuthenticationPrincipal Jwt jwt) {
     AccessContext context = accessContextResolver.requireCurrentContext();
     context.requireCapability("EDIT_DOCUMENT");
-    return DocumentResponse.from(documentEditorService.getDocument(documentId));
+    return DocumentResponse.from(documentEditorService.getDocument(documentId, getRequiredUserId(jwt)));
   }
 
   @PostMapping("/documents")
@@ -55,11 +57,14 @@ public class DocumentController {
     DocumentSnapshot snapshot = documentEditorService.createDocument(
         context.roleCode(),
         getRequiredUserId(jwt),
+        request.documentTypeCode(),
+        request.title(),
+        request.summary(),
+        request.sourceReference(),
+        request.publishedAt(),
         context.scopeType(),
         getLongClaim(jwt, "board_id"),
         getLongClaim(jwt, "school_id"),
-        request.documentTypeCode(),
-        request.title(),
         request.contentJson()
     );
     return DocumentResponse.from(snapshot);
@@ -100,6 +105,22 @@ public class DocumentController {
     AccessContext context = accessContextResolver.requireCurrentContext();
     context.requireCapability("APPROVE_DOCUMENT");
     return DocumentResponse.from(documentEditorService.approve(context.roleCode(), documentId, request.versionNumber()));
+  }
+
+  @PatchMapping("/documents/{documentId}/onboarding-status")
+  public DocumentResponse updateOnboardingStatus(
+      @PathVariable long documentId,
+      @Valid @RequestBody DocumentOnboardingStatusRequest request,
+      @AuthenticationPrincipal Jwt jwt
+  ) {
+    AccessContext context = accessContextResolver.requireCurrentContext();
+    context.requireCapability("EDIT_DOCUMENT");
+    return DocumentResponse.from(documentEditorService.updateOnboardingStatus(
+        context.roleCode(),
+        getRequiredUserId(jwt),
+        documentId,
+        request.status()
+    ));
   }
 
   private long getRequiredUserId(Jwt jwt) {

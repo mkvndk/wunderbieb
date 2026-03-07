@@ -26,6 +26,15 @@ public class DocumentEntity {
   @Column(nullable = false, length = 255)
   private String title;
 
+  @Column(length = 1000)
+  private String summary;
+
+  @Column(name = "source_reference", length = 255)
+  private String sourceReference;
+
+  @Column(name = "published_at")
+  private Instant publishedAt;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "scope_type", nullable = false, length = 50)
   private ScopeType scopeType;
@@ -61,6 +70,9 @@ public class DocumentEntity {
   public DocumentEntity(
       String documentTypeCode,
       String title,
+      String summary,
+      String sourceReference,
+      Instant publishedAt,
       ScopeType scopeType,
       Long boardId,
       Long schoolId,
@@ -73,6 +85,9 @@ public class DocumentEntity {
   ) {
     this.documentTypeCode = documentTypeCode;
     this.title = title;
+    this.summary = summary;
+    this.sourceReference = sourceReference;
+    this.publishedAt = publishedAt;
     this.scopeType = scopeType;
     this.boardId = boardId;
     this.schoolId = schoolId;
@@ -98,6 +113,18 @@ public class DocumentEntity {
 
   public void setTitle(String title) {
     this.title = title;
+  }
+
+  public String getSummary() {
+    return summary;
+  }
+
+  public String getSourceReference() {
+    return sourceReference;
+  }
+
+  public Instant getPublishedAt() {
+    return publishedAt;
   }
 
   public ScopeType getScopeType() {

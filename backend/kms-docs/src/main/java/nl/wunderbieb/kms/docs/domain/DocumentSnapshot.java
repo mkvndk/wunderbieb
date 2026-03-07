@@ -8,6 +8,9 @@ public record DocumentSnapshot(
     long id,
     String documentTypeCode,
     String title,
+    String summary,
+    String sourceReference,
+    Instant publishedAt,
     ScopeType scopeType,
     Long boardId,
     Long schoolId,
@@ -17,6 +20,9 @@ public record DocumentSnapshot(
     boolean active,
     Instant createdAt,
     Instant updatedAt,
+    DocumentOnboardingStatus onboardingStatus,
+    Instant lastReadAt,
+    Instant onboardingUpdatedAt,
     List<DocumentVersion> versions
 ) {
 }
