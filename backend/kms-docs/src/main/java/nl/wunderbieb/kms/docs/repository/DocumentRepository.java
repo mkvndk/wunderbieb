@@ -10,6 +10,8 @@ public interface DocumentRepository extends JpaRepository<DocumentEntity, Long> 
 
   List<DocumentEntity> findTop100ByOrderByUpdatedAtDesc();
 
+  List<DocumentEntity> findAllByActiveTrueOrderByUpdatedAtDesc();
+
   @Query("""
       select d
       from DocumentEntity d
